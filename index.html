@@ -273,5 +273,64 @@
         updateLayout();
         window.addEventListener('resize', updateLayout);
     </script>
+
+<script>
+    // Replace these with your GitHub details
+    const GITHUB_USERNAME = "thelifeofpita";
+    const REPO_NAME = "thelifeofpita.github.io/portfolio";
+    const IMAGE_FOLDER = "home_content";
+    
+    async function loadSlideshowImages() {
+        try {
+            // 1. Fetch folder contents via GitHub API
+            const response = await fetch(
+                `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${IMAGE_FOLDER}`
+            );
+            
+            // 2. Parse JSON response
+            const files = await response.json();
+            
+            // 3. Filter image files
+            const images = files.filter(file => 
+                /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
+            ).map(file => file.download_url);
+    
+            // 4. Start slideshow if images found
+            if(images.length > 0) {
+                startSlideshow(images);
+            } else {
+                console.log("No images found in folder");
+            }
+        } catch (error) {
+            console.error("Error loading images:", error);
+        }
+    }
+    
+    function startSlideshow(imageUrls) {
+        let currentIndex = 0;
+        const imageElement = document.getElementById('slideshow-image');
+        
+        // Initial random image
+        currentIndex = Math.floor(Math.random() * imageUrls.length);
+        imageElement.src = imageUrls[currentIndex];
+        
+        // Change image every 15 seconds
+        setInterval(() => {
+            // Fade transition
+            imageElement.style.opacity = 0;
+            
+            setTimeout(() => {
+                // Update index and image
+                currentIndex = (currentIndex + 1) % imageUrls.length;
+                imageElement.src = imageUrls[currentIndex];
+                imageElement.style.opacity = 1;
+            }, 500); // Match CSS transition duration
+        }, 15000);
+    }
+    
+    // Initialize when page loads
+    window.addEventListener('DOMContentLoaded', loadSlideshowImages);
+    </script>
+
 </body>
 </html>

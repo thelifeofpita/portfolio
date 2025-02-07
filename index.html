@@ -128,12 +128,22 @@
             color: inherit; /* Ensure color inheritance */
         }
 
+        .menu-item.active {
+        color: white;
+        outline: none; /* Remove any default outline */
+        padding-top: 1px;
+        padding-bottom: 2px;
+        padding-left: 5px;
+        padding-right: 5px;
+        background-color: #FF0B17;
+        }
+
         .menu-item::before {
             content: '\005C';
             margin-right: 0.1rem;
         }
 
-        .menu-item:hover {
+        .menu-item:hover:not(.active) {
             color: #FF0B17; /* Red color from logo/line */
             opacity: 1 !important; /* Maintain full opacity on hover */
         }
@@ -272,7 +282,7 @@
         <!-- Right Column -->
         <div class="right-panel">
             <div class="artwork-box">
-                <img id="slideshow-image" alt=" ">
+                <img id="slideshow-image" alt="pita_artwork">
             </div>
         </div>
 
@@ -352,50 +362,94 @@
         // Start Slideshow
         function startSlideshow(imageUrls) {
             const imageElement = document.getElementById('slideshow-image');
-            let currentIndex = Math.floor(Math.random() * imageUrls.length);
             
-            // Show first image
-            imageElement.style.opacity = 0;
-            imageElement.src = imageUrls[currentIndex];
-            setTimeout(() => imageElement.style.opacity = 1, 50);
+            // Clear any existing interval and reset variables when starting a new slideshow
+            if(slideshowInterval) clearInterval(slideshowInterval);
+            
+            let currentIndex = Math.floor(Math.random() * imageUrls.length);
 
-            // Setup automatic changes
-            slideshowInterval = setInterval(() => {
+            return new Promise((resolve) => {
+                // Show first image
                 imageElement.style.opacity = 0;
-                setTimeout(() => {
-                    currentIndex = (currentIndex + 1) % imageUrls.length;
-                    imageElement.src = imageUrls[currentIndex];
-                    imageElement.style.opacity = 1;
-                }, 100);
-            }, 10000);
+                imageElement.src = imageUrls[currentIndex];
+                
+                const observer = new IntersectionObserver(
+                    (entries) => {
+                        if(entries[0].isIntersecting) {
+                            setTimeout(() => {
+                                imageElement.style.opacity = 1;
+                                resolve();
+                            }, 50);
+                        }
+                    },
+                    { threshold: 1 } // Ensure the entire image is loaded
+                );
+
+                observer.observe(imageElement);
+
+                slideshowInterval = setInterval(() => {
+                    if(!imageElement) return; // Check for element existence before modification
+                    
+                    let nextIndex;
+                    
+                    try {
+                        imageElement.style.opacity = 0;
+                        
+                        nextIndex = (currentIndex + Math.floor(Math.random() * (imageUrls.length - currentIndex)));
+                        nextIndex %= imageUrls.length;
+
+                        setTimeout(() => {
+                            currentIndex = nextIndex;
+                            if(imageUrls[currentIndex]) {
+                                imageElement.src = imageUrls[currentIndex];
+                            }
+                            
+                            setTimeout(() => 
+                                imageElement.style.opacity = 1
+                             , 50);
+                        }, 30);
+
+                    } catch (error) {
+                        console.error("Slideshow error:", error);
+                    }
+
+                }, 3000); // Changed to 1 second for better debugging
+
+            });
         }
 
-        // Click Handler for Menu Items
-        document.querySelectorAll('.menu-item[data-folder]').forEach(item => {
-            item.addEventListener('click', () => {
-                const newFolder = item.getAttribute('data-folder');
-                if(newFolder !== CURRENT_FOLDER) {
-                    CURRENT_FOLDER = newFolder;
-                    loadSlideshowImages(CURRENT_FOLDER);
-                }
-            });
+// Click Handler for Menu Items
+document.querySelectorAll('.menu-item[data-folder]').forEach(item => {
+    item.addEventListener('click', () => {
+        // Remove active class from all menu items
+        document.querySelectorAll('.menu-item').forEach(menuItem => {
+            menuItem.classList.remove('active');
         });
+    
+        const newFolder = item.getAttribute('data-folder');
+        if (newFolder !== CURRENT_FOLDER) {
+           CURRENT_FOLDER = newFolder;
+            loadSlideshowImages(CURRENT_FOLDER);
+            
+            // Add active class to clicked item
+            item.classList.add('active');
+        }
+    });
+});
 
 // Click Handler for PITA Title
 document.getElementById('main-title').addEventListener('click', () => {
     if(CURRENT_FOLDER !== "home") {
         CURRENT_FOLDER = "home";
         loadSlideshowImages(CURRENT_FOLDER);
+        
+        // Remove active class from all menu items
+        document.querySelectorAll('.menu-item').forEach(menuItem => {
+            menuItem.classList.remove('active');
+        });
     }
 });
-
-        // Initial Load
-        window.addEventListener('DOMContentLoaded', () => {
-            loadSlideshowImages(CURRENT_FOLDER);
-        });
     </script>
-
-    
 
 </body>
 </html>

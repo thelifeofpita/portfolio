@@ -319,6 +319,7 @@
         const REPO_NAME = "portfolio";
         let CURRENT_FOLDER = "home"; // Start with default folder
         let slideshowInterval = null; // To control the slideshow
+        CURRENT_FOLDER = loadSlideshowImages(CURRENT_FOLDER);
 
         // Preload Images Function
         function preloadImages(urls) {

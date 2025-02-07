@@ -371,7 +371,7 @@
 
             return new Promise((resolve) => {
                 // Show first image
-                imageElement.style.opacity = 0;
+                imageElement.style.opacity = 1;
                 imageElement.src = imageUrls[currentIndex];
                 
                 const observer = new IntersectionObserver(
@@ -394,7 +394,7 @@
                     let nextIndex;
                     
                     try {
-                        imageElement.style.opacity = 0;
+                        imageElement.style.opacity = 1;
                         
                         nextIndex = (currentIndex + Math.floor(Math.random() * (imageUrls.length - currentIndex)));
                         nextIndex %= imageUrls.length;
@@ -414,7 +414,7 @@
                         console.error("Slideshow error:", error);
                     }
 
-                }, 3000); // Changed to 1 second for better debugging
+                }, 10000);
 
             });
         }
@@ -422,6 +422,9 @@
 // Click Handler for Menu Items
 document.querySelectorAll('.menu-item[data-folder]').forEach(item => {
     item.addEventListener('click', () => {
+        // Do nothing if this item is already active
+        if (item.classList.contains('active')) return;
+        
         // Remove active class from all menu items
         document.querySelectorAll('.menu-item').forEach(menuItem => {
             menuItem.classList.remove('active');

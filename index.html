@@ -362,63 +362,49 @@
 
         // Start Slideshow
         function startSlideshow(imageUrls) {
-            const imageElement = document.getElementById('slideshow-image');
-            
-            // Clear any existing interval and reset variables when starting a new slideshow
-            if(slideshowInterval) clearInterval(slideshowInterval);
-            
-            let currentIndex = Math.floor(Math.random() * imageUrls.length);
+    const imageElement = document.getElementById('slideshow-image');
+    
+    // Stop existing slideshow if any exists
+    if(slideshowInterval) clearInterval(slideshowInterval);
+    
+    let currentIndex = Math.floor(Math.random() * imageUrls.length);
 
-            return new Promise((resolve) => {
-                // Show first image
+    return new Promise((resolve) => {
+        // Show first image
+        imageElement.style.opacity = 1;
+        imageElement.src = imageUrls[currentIndex];
+        
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if(entries[0].isIntersecting) {
+                    setTimeout(() => {
+                        imageElement.style.opacity = 1;
+                        resolve();
+                    }, 50);
+                }
+            },
+            { threshold: 1 } // Ensure the entire image is loaded
+        );
+
+        observer.observe(imageElement);
+
+        slideshowInterval = setInterval(() => {
+            if(!imageElement) return; // Check for element existence before modification
+            
+            try {
+                // Randomly select an index (fixed issue here)
+                currentIndex = Math.floor(Math.random() * imageUrls.length);
+                
                 imageElement.style.opacity = 1;
                 imageElement.src = imageUrls[currentIndex];
                 
-                const observer = new IntersectionObserver(
-                    (entries) => {
-                        if(entries[0].isIntersecting) {
-                            setTimeout(() => {
-                                imageElement.style.opacity = 1;
-                                resolve();
-                            }, 50);
-                        }
-                    },
-                    { threshold: 1 } // Ensure the entire image is loaded
-                );
+            } catch (error) {
+                console.error("Slideshow error:", error);
+            }
+        }, 10000); // Change every 10 seconds
 
-                observer.observe(imageElement);
-
-                slideshowInterval = setInterval(() => {
-                    if(!imageElement) return; // Check for element existence before modification
-                    
-                    let nextIndex;
-                    
-                    try {
-                        imageElement.style.opacity = 1;
-                        
-                        nextIndex = (currentIndex + Math.floor(Math.random() * (imageUrls.length - currentIndex)));
-                        nextIndex %= imageUrls.length;
-
-                        setTimeout(() => {
-                            currentIndex = nextIndex;
-                            if(imageUrls[currentIndex]) {
-                                imageElement.src = imageUrls[currentIndex];
-                            }
-                            
-                            setTimeout(() => 
-                                imageElement.style.opacity = 1
-                             , 50);
-                        }, 30);
-
-                    } catch (error) {
-                        console.error("Slideshow error:", error);
-                    }
-
-                }, 10000);
-
-            });
-        }
-
+    });
+}
 // Click Handler for Menu Items
 document.querySelectorAll('.menu-item[data-folder]').forEach(item => {
     item.addEventListener('click', () => {

@@ -205,7 +205,23 @@
             margin: 0;
             margin-bottom: 0.5rem;
             aspect-ratio: 4/3;
+            position: relative;
+            overflow: hidden;
         }
+        .artwork-box video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: opacity 0.1s ease-in-out;
+         }
+
+        .artwork-box img {
+        transition: opacity 0.1s ease-in-out;
+        }
+
         .mobile-divider {
             display: block;
             width: calc(100%);
@@ -319,30 +335,108 @@
     const REPO_NAME = "portfolio";
     let CURRENT_FOLDER = "home";
     let slideshowInterval = null;
-    let currentImages = [];
+    let currentMedia = [];
     let currentIndex = 0;
 
-    // Preload Images Function
-    function preloadImages(urls) {
-        return Promise.all(
-            urls.map(url => 
-                new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.src = url;
-                    img.onload = resolve;
-                    img.onerror = reject;
-                })
-            )
-        );
+    // Media filtering
+    function isMediaFile(file) {
+        return /\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i.test(file.name);
     }
 
-    // Updated loadSlideshowImages function
+    // Create or update media element
+    function updateMediaElement(url) {
+        const container = document.querySelector('.artwork-box');
+        let mediaElement = container.querySelector('#slideshow-media');
+        const isVideo = /(mp4|webm|mov)$/i.test(url);
+
+        if (!mediaElement) {
+            mediaElement = document.createElement(isVideo ? 'video' : 'img');
+            mediaElement.id = 'slideshow-media';
+            mediaElement.style.position = 'absolute';
+            mediaElement.style.width = '100%';
+            mediaElement.style.height = '100%';
+            mediaElement.style.objectFit = 'cover';
+            mediaElement.style.transition = 'opacity 0.1s ease-in-out';
+            container.appendChild(mediaElement);
+        }
+
+        if (mediaElement.tagName.toLowerCase() !== (isVideo ? 'video' : 'img')) {
+            const newElement = document.createElement(isVideo ? 'video' : 'img');
+            newElement.id = 'slideshow-media';
+            newElement.style.cssText = mediaElement.style.cssText;
+            container.replaceChild(newElement, mediaElement);
+            mediaElement = newElement;
+        }
+
+        mediaElement.src = url;
+        mediaElement.style.opacity = 1;
+
+        if (isVideo) {
+            mediaElement.autoplay = true;
+            mediaElement.muted = true;
+            mediaElement.loop = true;
+            mediaElement.playsInline = true;
+        } else {
+            mediaElement.alt = '';
+        }
+
+        return mediaElement;
+    }
+
+    // Start slideshow
+    function startSlideshow(mediaUrls) {
+        currentIndex = Math.floor(Math.random() * mediaUrls.length);
+        const mediaElement = updateMediaElement(mediaUrls[currentIndex]);
+        setupSlideshowInterval();
+    }
+
+    // Setup interval
+    function setupSlideshowInterval() {
+        if(slideshowInterval) clearInterval(slideshowInterval);
+        
+        slideshowInterval = setInterval(() => {
+            const mediaElement = document.querySelector('#slideshow-media');
+            if (!mediaElement || currentMedia.length === 0) return;
+
+            mediaElement.style.opacity = 0;
+            setTimeout(() => {
+                currentIndex = (currentIndex + 1) % currentMedia.length;
+                mediaElement.src = currentMedia[currentIndex];
+                mediaElement.style.opacity = 1;
+            }, 100);
+        }, 10000);
+    }
+
+    // Click handler
+    document.addEventListener('click', function(event) {
+        const mediaElement = document.querySelector('#slideshow-media');
+        const isMenuClick = event.target.closest('.menu-item') || 
+                          event.target.closest('#main-title');
+
+        if (!isMenuClick && currentMedia.length > 0) {
+            mediaElement.style.opacity = 0;
+            
+            setTimeout(() => {
+                let newIndex;
+                do {
+                    newIndex = Math.floor(Math.random() * currentMedia.length);
+                } while (newIndex === currentIndex && currentMedia.length > 1);
+                
+                currentIndex = newIndex;
+                mediaElement.src = currentMedia[currentIndex];
+                mediaElement.style.opacity = 1;
+                setupSlideshowInterval();
+            }, 100);
+        }
+    });
+
+    // Load slideshow
     async function loadSlideshowImages(folder) {
         try {
-            const imageElement = document.getElementById('slideshow-image');
+            const mediaElement = document.querySelector('#slideshow-media');
             if(slideshowInterval) clearInterval(slideshowInterval);
             
-            imageElement.style.opacity = 0;
+            if(mediaElement) mediaElement.style.opacity = 0;
             await new Promise(resolve => setTimeout(resolve, 100));
 
             const response = await fetch(
@@ -350,66 +444,37 @@
             );
             
             const files = await response.json();
-            currentImages = files.filter(file => 
-                /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
+            currentMedia = files.filter(file => 
+                isMediaFile(file)
             ).map(file => file.download_url);
 
-            if(currentImages.length > 0) {
-                await preloadImages(currentImages);
-                startSlideshow(currentImages);
+            if(currentMedia.length > 0) {
+                await preloadFirstMedia();
+                startSlideshow(currentMedia);
             }
         } catch (error) {
             console.error("Error:", error);
         }
     }
 
-    // Start slideshow with timer reset
-    function startSlideshow(images) {
-        const imageElement = document.getElementById('slideshow-image');
-        currentIndex = Math.floor(Math.random() * images.length);
-        
-        imageElement.style.opacity = 1;
-        imageElement.src = images[currentIndex];
-        setupSlideshowInterval();
-    }
-
-    // Setup interval with fresh timer
-    function setupSlideshowInterval() {
-        if(slideshowInterval) clearInterval(slideshowInterval);
-        
-        slideshowInterval = setInterval(() => {
-            const imageElement = document.getElementById('slideshow-image');
-            imageElement.style.opacity = 0;
-            setTimeout(() => {
-                currentIndex = (currentIndex + 1) % currentImages.length;
-                imageElement.src = currentImages[currentIndex];
-                imageElement.style.opacity = 1;
-            }, 100);
-        }, 10000);
-    }
-
-    // Click handler for random images
-    document.addEventListener('click', function(event) {
-        const imageElement = document.getElementById('slideshow-image');
-        const isMenuClick = event.target.closest('.menu-item') || 
-                          event.target.closest('#main-title');
-
-        if (!isMenuClick && currentImages.length > 0) {
-            imageElement.style.opacity = 0;
-            
-            setTimeout(() => {
-                let newIndex;
-                do {
-                    newIndex = Math.floor(Math.random() * currentImages.length);
-                } while (newIndex === currentIndex && currentImages.length > 1);
+    // Preload first media
+    async function preloadFirstMedia() {
+        return new Promise((resolve) => {
+            if (currentMedia.length > 0) {
+                const isVideo = /(mp4|webm|mov)$/i.test(currentMedia[0]);
+                const media = document.createElement(isVideo ? 'video' : 'img');
+                media.src = currentMedia[0];
                 
-                currentIndex = newIndex;
-                imageElement.src = currentImages[currentIndex];
-                imageElement.style.opacity = 1;
-                setupSlideshowInterval(); // Reset timer after manual click
-            }, 100);
-        }
-    });
+                if(isVideo) {
+                    media.addEventListener('loadeddata', resolve);
+                    media.muted = true;
+                    media.playsInline = true;
+                } else {
+                    media.onload = resolve;
+                }
+            }
+        });
+    }
 
     // Menu item click handlers
     document.querySelectorAll('.menu-item[data-folder]').forEach(item => {
